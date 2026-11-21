@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Airline Booking System - By Manshi Singh</title>
+<style>
+body{font-family:Arial;text-align:center;background:#e8f0ff;padding:15px;margin:0}
+h1{color:#003580} p{color:#555}
+.nav{display:flex;justify-content:center;gap:10px;margin:10px}
+.nav button{background:#003580;color:white;padding:12px 22px;border:none;border-radius:10px;cursor:pointer;font-size:15px}
+.nav button.active{background:#ff6b00}
+.box{background:white;padding:20px;border-radius:15px;max-width:750px;margin:15px auto;box-shadow:0 0 12px #ccc;text-align:left}
+input,select{padding:10px;width:95%;border-radius:8px;border:1px solid #aaa;margin:6px 0}
+button.main{padding:12px 20px;background:#007bff;color:white;border:none;border-radius:8px;cursor:pointer;margin:5px}
+.green{background:#28a745}.orange{background:#ff6b00}.pink{background:#ff4d88}
+.cards{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.card{background:#003580;color:white;padding:15px;border-radius:12px;width:160px;text-align:center}
+.card h2{margin:5px}.card p{color:#ddd;margin:0;font-size:13px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th{background:#003580;color:white;padding:10px;font-size:13px} td{padding:10px;border-bottom:1px solid #eee;font-size:13px}
+.bar{height:22px;background:#e0e0e0;border-radius:10px;margin:6px 0;overflow:hidden}
+.fill{height:100%;background:#007bff;color:white;font-size:12px;line-height:22px;padding-left:8px;text-align:left}
+.hidden{display:none}
+.flight{border:1px solid #ddd;padding:12px;border-radius:10px;margin:8px 0}
+</style>
+</head>
+<body>
+
+<h1>✈️ SkyWings Airlines</h1>
+<p><b>Airline Booking System with Data Analytics Dashboard</b><br>By Manshi Singh | ABES Engineering College</p>
+
+<div class="nav">
+<button id="bookTab" class="active" type="button">🎫 Book Flight</button>
+<button id="dashTab" type="button">📊 Dashboard</button>
+<button id="historyTab" type="button">📜 My Bookings</button>
+</div>
+
+<!-- BOOKING PAGE -->
+<div id="bookPage" class="box">
+<h2>🔍 Search & Book Flight</h2>
+<label>From</label>
+<select id="from">
+<option>Delhi (DEL)</option><option>Mumbai (BOM)</option><option>Bangalore (BLR)</option><option>Jaipur (JAI)</option><option>Goa (GOI)</option>
+</select>
+<label>To</label>
+<select id="to">
+<option>Mumbai (BOM)</option><option>Delhi (DEL)</option><option>Bangalore (BLR)</option><option>Goa (GOI)</option><option>Jaipur (JAI)</option>
+</select>
+<label>Travel Date</label>
+<input type="date" id="date">
+<label>Passenger Name</label>
+<input type="text" id="pname" placeholder="Enter Passenger Name">
+<label>Class</label>
+<select id="cls"><option>Economy - ₹3500</option><option>Business - ₹8500</option><option>First Class - ₹12500</option></select>
+<label>Seats</label>
+<input type="number" id="seats" value="1" min="1" max="6">
+<br><button class="main orange" id="searchBtn" type="button">Search Flights</button>
+<div id="flights"></div>
+<p id="bookMsg" style="font-weight:bold;color:green"></p>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div id="dashPage" class="box hidden">
+<h2>📊 Data Analytics Dashboard</h2>
+<div class="cards">
+<div class="card"><h2 id="tBook">0</h2><p>Total Bookings</p></div>
+<div class="card" style="background:#007bff"><h2 id="tPass">0</h2><p>Total Passengers</p></div>
+<div class="card" style="background:#28a745"><h2 id="tRev">₹0</h2><p>Total Revenue</p></div>
+<div class="card" style="background:#ff6b00"><h2 id="tRoute">-</h2><p>Most Popular Route</p></div>
+</div>
+
+<h3>📈 Most Popular Routes</h3>
+<div id="routeChart"></div>
+
+<h3>🎫 Bookings by Class</h3>
+<div id="classChart"></div>
+
+<h3>💡 Insights</h3>
+<ul id="insights"><li>No bookings yet. Book a flight to see analytics.</li></ul>
+<button class="main green" id="exportDash" type="button">📥 Export Dashboard Report (CSV)</button>
+</div>
+
+<!-- HISTORY PAGE -->
+<div id="historyPage" class="box hidden">
+<h2>📜 My Bookings History</h2>
+<table><tr><th>Passenger</th><th>Route</th><th>Date</th><th>Class</th><th>Seats</th><th>Price</th></tr><tbody id="bookList"></tbody></table>
+<br><button class="main pink" id="clearBtn" type="button">Clear All Bookings</button>
+</div>
+
+<p style="font-size:13px;opacity:0.7">© 2026 Manshi Singh | ABES Engineering College | SkyWings Airlines</p>
+
+<script>
+var bookings = [];
+try{ bookings = JSON.parse(localStorage.getItem("skyBookings") || "[]"); }catch(e){ bookings=[]; }
+
+var prices = {"Economy":3500,"Business":8500,"First Class":12500};
+var flightNames = ["SkyWings 101","SkyWings 202","SkyWings 303"];
+
+function showTabs(id){
+  document.getElementById("bookPage").classList.add("hidden");
+  document.getElementById("dashPage").classList.add("hidden");
+  document.getElementById("historyPage").classList.add("hidden");
+  document.getElementById(id).classList.remove("hidden");
+  document.getElementById("bookTab").classList.remove("active");
+  document.getElementById("dashTab").classList.remove("active");
+  document.getElementById("historyTab").classList.remove("active");
+  if(id=="bookPage") document.getElementById("bookTab").classList.add("active");
+  if(id=="dashPage") document.getElementById("dashTab").classList.add("active");
+  if(id=="historyPage") document.getElementById("historyTab").classList.add("active");
+  if(id=="dashPage") updateDashboard();
+  if(id=="historyPage") renderHistory();
+}
+document.getElementById("bookTab").addEventListener("click",function(){showTabs("bookPage")});
+document.getElementById("dashTab").addEventListener("click",function(){showTabs("dashPage")});
+document.getElementById("historyTab").addEventListener("click",function(){showTabs("historyPage")});
+
+document.getElementById("searchBtn").addEventListener("click",function(){
+  var from=document.getElementById("from").value;
+  var to=document.getElementById("to").value;
+  var date=document.getElementById("date").value;
+  var name=document.getElementById("pname").value;
+  var cls=document.getElementById("cls").value;
+  var seats=parseInt(document.getElementById("seats").value);
+  if(from==to){ alert("From and To cannot be same!"); return; }
+  if(!date){ alert("Please select travel date!"); return; }
+  if(!name){ alert("Please enter passenger name!"); return; }
+  var className=cls.split(" -")[0];
+  var pricePer=prices[className];
+  var total=pricePer*seats;
+  var html="";
+  for(var i=0;i<3;i++){
+    var time=["08:00 AM","01:30 PM","07:45 PM"][i];
+    html+='<div class="flight"><b>'+flightNames[i]+'</b> | '+from+' → '+to+' | '+time+' | '+date+'<br>'+className+' | '+seats+' Seat(s) | <b>₹'+total+'</b> <br><button class="main green" type="button" onclick="bookNow(\''+flightNames[i]+'\',\''+time+'\')">Book This Flight</button></div>';
+  }
+  document.getElementById("flights").innerHTML=html;
+});
+
+function bookNow(flight,time){
+  var from=document.getElementById("from").value;
+  var to=document.getElementById("to").value;
+  var date=document.getElementById("date").value;
+  var name=document.getElementById("pname").value;
+  var cls=document.getElementById("cls").value;
+  var seats=parseInt(document.getElementById("seats").value);
+  var className=cls.split(" -")[0];
+  var total=prices[className]*seats;
+  var b={name:name,route:from+" → "+to,from:from,to:to,date:date,cls:className,seats:seats,price:total,flight:flight,time:time};
+  bookings.push(b);
+  try{ localStorage.setItem("skyBookings", JSON.stringify(bookings)); }catch(e){}
+  document.getElementById("bookMsg").innerText="✅ Booked! "+name+" | "+flight+" | "+from+" → "+to+" | ₹"+total;
+  alert("Booking Confirmed! PNR: SKY"+(1000+bookings.length));
+}
+
+function renderHistory(){
+  var tbody=document.getElementById("bookList");
+  tbody.innerHTML="";
+  for(var i=0;i<bookings.length;i++){
+    var b=bookings[i];
+    tbody.innerHTML+="<tr><td>"+b.name+"</td><td>"+b.route+"</td><td>"+b.date+"</td><td>"+b.cls+"</td><td>"+b.seats+"</td><td>₹"+b.price+"</td></tr>";
+  }
+}
+
+function updateDashboard(){
+  var totalB=bookings.length;
+  var totalP=0, totalR=0;
+  var routes={}, classes={Economy:0,Business:0,"First Class":0};
+  for(var i=0;i<bookings.length;i++){
+    totalP+=bookings[i].seats; totalR+=bookings[i].price;
+    routes[bookings[i].route]=(routes[bookings[i].route]||0)+1;
+    classes[bookings[i].cls]=(classes[bookings[i].cls]||0)+1;
+  }
+  document.getElementById("tBook").innerText=totalB;
+  document.getElementById("tPass").innerText=totalP;
+  document.getElementById("tRev").innerText="₹"+totalR;
+  var maxR="-", maxC=0;
+  for(var r in routes){ if(routes[r]>maxC){maxC=routes[r]; maxR=r;} }
+  document.getElementById("tRoute").innerText=maxR;
+
+  var rc=document.getElementById("routeChart"); rc.innerHTML="";
+  for(var r in routes){
+    var pct=Math.round((routes[r]/totalB)*100);
+    rc.innerHTML+="<div><b>"+r+" - "+routes[r]+" bookings</b><div class='bar'><div class='fill' style='width:"+pct+"%'>"+pct+"%</div></div></div>";
+  }
+  if(totalB==0) rc.innerHTML="No data yet.";
+
+  var cc=document.getElementById("classChart"); cc.innerHTML="";
+  for(var c in classes){
+    var pct2= totalB? Math.round((classes[c]/totalB)*100):0;
+    cc.innerHTML+="<div><b>"+c+" - "+classes[c]+"</b><div class='bar'><div class='fill' style='width:"+pct2+"%;background:#ff6b00'>"+pct2+"%</div></div></div>";
+  }
+
+  var ins=document.getElementById("insights");
+  if(totalB==0){ ins.innerHTML="<li>No bookings yet.</li>"; }
+  else{
+    ins.innerHTML="<li>Most popular route is <b>"+maxR+"</b> with "+maxC+" bookings.</li><li>Average booking value is <b>₹"+Math.round(totalR/totalB)+"</b>.</li><li>Total revenue generated is <b>₹"+totalR+"</b> from "+totalP+" passengers.</li>";
+  }
+}
+
+document.getElementById("clearBtn").addEventListener("click",function(){
+  bookings=[]; try{localStorage.removeItem("skyBookings");}catch(e){}
+  renderHistory(); document.getElementById("bookMsg").innerText="";
+  alert("All bookings cleared!");
+});
+document.getElementById("exportDash").addEventListener("click",function(){
+  if(bookings.length==0){ alert("No bookings to export!"); return; }
+  var csv="SkyWings Airlines - Dashboard Report\nBy Manshi Singh | ABES Engineering College\n\nPassenger,Route,Date,Class,Seats,Price\n";
+  for(var i=0;i<bookings.length;i++){ var b=bookings[i]; csv+='"'+b.name+'","'+b.route+'","'+b.date+'","'+b.cls+'","'+b.seats+'","'+b.price+'"\n'; }
+  var blob=new Blob([csv],{type:"text/csv"}); var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download="Airline_Dashboard_Report.csv"; a.click();
+});
+renderHistory();
+</script>
+</body>
+</html>
